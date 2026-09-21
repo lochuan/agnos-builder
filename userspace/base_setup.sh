@@ -11,10 +11,12 @@ touch /AGNOS
 # Add armhf as supported architecture
 dpkg --add-architecture armhf
 
-# Install apt-fast
+# Install apt-fast (fail hard if the installer can't be fetched: it brings aria2
+# which the on-device updater needs — never silently skip)
 apt-get update
 apt-get install -yq curl sudo wget
-bash -c "$(curl -sL https://git.io/vokNn)"
+curl -fsSL --retry 5 --retry-delay 3 -o /tmp/install-apt-fast.sh https://git.io/vokNn
+bash /tmp/install-apt-fast.sh
 
 # Install packages
 export DEBIAN_FRONTEND=noninteractive

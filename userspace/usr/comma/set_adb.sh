@@ -57,7 +57,8 @@ stop() {
 }
 
 ADB_PARAM="/data/params/d/AdbEnabled"
-if [ -f "$ADB_PARAM" ] && [ "$(< $ADB_PARAM)" == "1" ]; then
+# default ON: param missing = enabled; explicit "0" disables
+if [ ! -f "$ADB_PARAM" ] || [ "$(< $ADB_PARAM)" == "1" ]; then
   echo "Enabling ADB"
 
   setup
