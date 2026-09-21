@@ -21,13 +21,15 @@ dependencies = [
   "tqdm",         # cars (fw_versions.py) on start + many one-off uses
 
   # core
-  "scons",
+  "scons==4.10.1",  # 4.11 removed the qt3 tool still used to build Cabana
   "pycapnp==2.1.0",  # 2.2 introduces a memory leak due to cyclic references
   "numpy >=2.0",
 
   # vendored native dependencies
   "comma-deps-capnproto",
   "comma-deps-acados",
+  "comma-deps-eigen",   # rednose EKF headers (<eigen3/Eigen/Dense>); SConstruct imports the module
+  "comma-deps-ncurses", # SConstruct imports the module at top level (only replay links it)
   "comma-deps-ffmpeg",
   "comma-deps-zstd",
   "comma-deps-zeromq",
@@ -35,12 +37,8 @@ dependencies = [
   "comma-deps-git-lfs",
   "comma-deps-gcc-arm-none-eabi",
 
-  # athena
+  # athena (comma API auth)
   "PyJWT[crypto]",
-  "websocket_client",
-
-  # joystickd
-  "inputs",
 
   # these should be removed
   "pyzmq",
@@ -51,7 +49,9 @@ dependencies = [
 
   # ui
   "comma-deps-raylib",
-  "qrcode",
+
+  # lanlinkd web service (runtime daemon)
+  "sanic",
 ]
 
 [project.optional-dependencies]
@@ -79,7 +79,6 @@ submodules = [
   "opendbc",
   "pandacan",
   "rednose",
-  "teleoprtc",
   "tinygrad",
 ]
 

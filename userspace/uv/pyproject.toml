@@ -5,8 +5,7 @@ authors = [{name = "Vehicle Researcher", email = "user@comma.ai"}]
 requires-python = ">=3.12.3, <3.13"
 description = ""
 dependencies = [
-  "openpilot",
-  "openpilot[tools,testing,submodules]",
+  "openpilot[submodules]",
   "msgq",
   "opendbc",
   "pandacan",
@@ -51,15 +50,9 @@ dependencies = [
   "libusb1 ==3.1.0", # recent versions segfault on comma three
   "paramiko",
 
-  # extra nice-to-haves
+  # extra nice-to-haves (on-device runtime only; no tools/testing extras)
   "evdev",
-  "ipython",
-  "py-spy",
   "spidev2",
-  "flaky",
-  "matplotlib",
-
-  # GUIs
   "comma-deps-raylib",
 ]
 
