@@ -84,7 +84,6 @@ systemctl disable networking.service
 # TODO: this doesn't actually disable unless run twice...
 # Service fails with Status: "No devices to monitor"
 systemctl disable smartd.service
-systemctl disable smartd.service
 
 systemctl disable console-setup.service
 systemctl disable sfsconfig.service
