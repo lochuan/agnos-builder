@@ -1,22 +1,10 @@
 #!/bin/bash -e
 
 # for all the non-essential nice to haves
+# (slimmed: dev/diag tools dropped; runtime-needed avahi/adb/dnsmasq kept)
 
 apt-get update && apt-get install -y --no-install-recommends \
-  bash-completion \
-  btop \
-  hyperfine \
-  iperf \
-  iperf3 \
   dnsmasq \
-  irqtop \
-  ripgrep \
-  ncdu \
-  nfs-common \
-  socat \
-  stress-ng \
-  tree \
-  wavemon \
   avahi-daemon \
   adb \
   avahi-utils
