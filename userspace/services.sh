@@ -70,11 +70,11 @@ systemctl disable update-notifier-motd.timer
 systemctl disable update-notifier-motd.service
 systemctl disable man-db.timer
 
-# Disable NFS stuff by default
-systemctl disable rpcbind
-systemctl disable dnsmasq.service
-systemctl disable nfs-client.target
-systemctl disable remote-fs-pre.target
+# Disable NFS stuff by default (units may be absent when nfs-common is not installed)
+systemctl disable rpcbind || true
+systemctl disable dnsmasq.service || true
+systemctl disable nfs-client.target || true
+systemctl disable remote-fs-pre.target || true
 
 # Service is from ifupdown but ifupdown is managed by NetworkManager
 # networking service fails with "ifup: failed to bring up lo"
