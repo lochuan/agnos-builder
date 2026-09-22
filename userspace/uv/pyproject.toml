@@ -18,6 +18,7 @@ dependencies = [
   "crcmod==1.7",  # C3 panda serial protocol
   "pyserial==3.5",  # C3 panda serial transport
   "kaitaistruct==0.11",  # C3 firmware parsing
+  "pillow==12.3.0",  # comma updater UI payload (emoji/text rendering) imports PIL — was lost with matplotlib in the extras slim
 
   # StarPilot runtime (kept explicit so a clean AGNOS build contains the
   # same managed-venv surface as the validated 19.6.13 image)
