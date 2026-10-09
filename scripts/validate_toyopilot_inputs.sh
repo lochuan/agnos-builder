@@ -17,7 +17,7 @@ expect_hash() {
   local actual
   actual="$(sha256 "$DIR/$path")"
   if [[ "$actual" != "$expected" ]]; then
-    echo "starpilot input hash mismatch: $path" >&2
+    echo "toyopilot input hash mismatch: $path" >&2
     echo "expected: $expected" >&2
     echo "actual:   $actual" >&2
     exit 1
@@ -25,9 +25,9 @@ expect_hash() {
 }
 
 version="$(tr -d '\n' < "$DIR/VERSION")"
-[[ "$version" == "19.6.26" || "$version" == 19.6.26-* ]]
-expect_hash userspace/usr/comma/setup c5df17f88cb4955eba4102f6791bc4fd7eb32474cb48e598e4e981c3e1d66893
-expect_hash userspace/usr/comma/installer 370d154aaf7e1e9ee433c069348ae885036a9d8cc4c8babfbfae12c8d5b3f2e8
+[[ "$version" == "19.6.27" || "$version" == 19.6.27-* ]]
+expect_hash userspace/usr/comma/setup 5268a8c961eb969a217a91d512ce496a150675bd06365e07d64c39c2843e3946
+[[ ! -e "$DIR/userspace/usr/comma/installer" ]]
 expect_hash userspace/files/amdgpu/gc_12_0_0_imu.bin.zst 1b095036d45d4280a72976ffdc5fa015fb33d528c87da688dd290bbb9716084f
 expect_hash userspace/files/amdgpu/gc_12_0_0_me.bin.zst 0bf7d4b54ace8af59d5c99c289bbb1b8ce77d11114bb880df308be2c9d5e2638
 expect_hash userspace/files/amdgpu/gc_12_0_0_mec.bin.zst b19544dc8138123d29d25b79116fc4354dd465640408f86c08a4c7ad6b1d32d4
@@ -83,4 +83,4 @@ fi
 kernel_ref="$(git -C "$DIR/agnos-kernel-sdm845" rev-parse HEAD 2>/dev/null || true)"
 [[ "$kernel_ref" == "4ee6b71b8ab9a461248985470726f5917943bc91" ]]
 
-echo "StarPilot AGNOS inputs validated (19.6.26, C3/Bluetooth, factory installer, WebRTC ICE fix)."
+echo "ToyoPilot AGNOS inputs validated (19.6.27, C3/Bluetooth, ToyoPilot setup, WebRTC ICE fix)."

@@ -33,7 +33,7 @@ Only the wheel enters the final image. It is installed into `/usr/local/venv`
 after `uv sync --frozen`, with `--no-index --no-deps`. The existing lockfile and
 all unrelated dependency versions are deliberately preserved. A later dependency
 sync must repeat this override and its test; otherwise it may undo the fix.
-`scripts/validate_starpilot_inputs.sh` checks the patch hashes and build hooks.
+`scripts/validate_toyopilot_inputs.sh` checks the patch hashes and build hooks.
 
 Both the isolated build environment and the image's managed environment run
 `check_ice.py`. It sends authenticated STUN probes over loopback UDP and checks:

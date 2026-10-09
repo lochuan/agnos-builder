@@ -26,8 +26,9 @@ git submodule update --init agnos-kernel-sdm845
 
 ### Building
 
-This fork's checked-in `VERSION`, managed-venv lockfile, factory setup/installer,
-Bluetooth files, and WebRTC patches are the StarPilot release inputs. `build_system.sh` validates
+This fork's checked-in `VERSION`, managed-venv lockfile, factory setup (ToyoPilot:
+default install comes from `https://tp.diaperastiko.top/c4` / `/c3x`, no bundled installer),
+Bluetooth files, and WebRTC patches are the ToyoPilot release inputs. `build_system.sh` validates
 those inputs before starting Docker, so a build cannot silently fall back to the
 stock installer or omit the C3 runtime dependencies.
 
