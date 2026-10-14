@@ -25,8 +25,8 @@ expect_hash() {
 }
 
 version="$(tr -d '\n' < "$DIR/VERSION")"
-[[ "$version" == "19.6.27" || "$version" == 19.6.27-* ]]
-expect_hash userspace/usr/comma/setup 5268a8c961eb969a217a91d512ce496a150675bd06365e07d64c39c2843e3946
+[[ "$version" == "19.6.28" || "$version" == 19.6.28-* ]]
+expect_hash userspace/usr/comma/setup a50dc0776e497e1060cbe670260d5bd4215f4b9c29a374b7f2b20982c72f633e
 [[ ! -e "$DIR/userspace/usr/comma/installer" ]]
 expect_hash userspace/files/amdgpu/gc_12_0_0_imu.bin.zst 1b095036d45d4280a72976ffdc5fa015fb33d528c87da688dd290bbb9716084f
 expect_hash userspace/files/amdgpu/gc_12_0_0_me.bin.zst 0bf7d4b54ace8af59d5c99c289bbb1b8ce77d11114bb880df308be2c9d5e2638
@@ -83,4 +83,4 @@ fi
 kernel_ref="$(git -C "$DIR/agnos-kernel-sdm845" rev-parse HEAD 2>/dev/null || true)"
 [[ "$kernel_ref" == "4ee6b71b8ab9a461248985470726f5917943bc91" ]]
 
-echo "ToyoPilot AGNOS inputs validated (19.6.27, C3/Bluetooth, ToyoPilot setup, WebRTC ICE fix)."
+echo "ToyoPilot AGNOS inputs validated (19.6.28, C3/Bluetooth, ToyoPilot setup, WebRTC ICE fix)."
