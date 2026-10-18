@@ -47,6 +47,17 @@ $DIR/tools/extract_tools.sh
 build_kernel() {
   cd agnos-kernel-sdm845
 
+  # Apply kernel-patches/*.patch on top of the pinned submodule; reverted after the build.
+  # A tree left patched by an interrupted build is detected and not patched twice.
+  for p in $DIR/kernel-patches/*.patch; do
+    if patch -p1 -R -s -f --dry-run < $p > /dev/null 2>&1; then
+      echo "-- kernel patch already applied: $(basename $p) --"
+    else
+      echo "-- applying kernel patch: $(basename $p) --"
+      patch -p1 -s -f --no-backup-if-mismatch < $p
+    fi
+  done
+
   # Build parameters
   ARCH=$(uname -m)
   if [ "$ARCH" != "arm64" ] && [ "$ARCH" != "aarch64" ]; then
@@ -91,7 +102,7 @@ build_kernel() {
   $TOOLS/mkbootimg \
     --kernel Image-dtb \
     --ramdisk /dev/null \
-    --cmdline "console=ttyMSM0,115200n8 isolcpus=6,7 quiet loglevel=3 earlycon=msm_geni_serial,0xA84000 androidboot.hardware=qcom androidboot.console=ttyMSM0 ehci-hcd.park=3 lpm_levels.sleep_disabled=1 service_locator.enable=1 androidboot.selinux=permissive firmware_class.path=/lib/firmware/updates net.ifnames=0 dyndbg=\"\"" \
+    --cmdline "console=ttyMSM0,115200n8 isolcpus=6,7 quiet loglevel=3 earlycon=msm_geni_serial,0xA84000 androidboot.hardware=qcom androidboot.console=ttyMSM0 ehci-hcd.park=3 lpm_levels.sleep_disabled=1 service_locator.enable=1 androidboot.selinux=permissive firmware_class.path=/lib/firmware/updates net.ifnames=0 msm_vidc.venus_work_cpu=6 dyndbg=\"\"" \
     --pagesize 4096 \
     --base 0x80000000 \
     --kernel_offset 0x8000 \
@@ -114,6 +125,11 @@ build_kernel() {
   echo "-- Install kernel UAPI headers --"
   rm -rf $OUTPUT_DIR/linux-headers
   make headers_install O=out INSTALL_HDR_PATH=$OUTPUT_DIR/linux-headers
+
+  echo "-- Revert kernel patches --"
+  for p in $(ls -r $DIR/kernel-patches/*.patch); do
+    patch -p1 -R -s -f --no-backup-if-mismatch < $p
+  done
 }
 
 # Run build_kernel in container

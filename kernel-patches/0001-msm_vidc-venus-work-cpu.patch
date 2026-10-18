@@ -1,0 +1,159 @@
+msm_vidc: venus 中断下半部可配置 CPU（venus_work_cpu）
+
+vidc_workq 是 ordered unbound 队列，kworker 只能在 CPU0-5 被 FIFO 实时线程压，
+用户态改不了（ordered 队列不受 workqueue/cpumask 影响，isolcpus 挡唤醒迁移）。
+新增 per-cpu WQ_HIGHPRI 队列 vidc_pcpu_workq；模块参数 venus_work_cpu >= 0 时
+ISR 用 queue_work_on 把 venus_hfi_work 放到该 CPU，-1（默认）保持原行为，
+目标 CPU 不在线时回落原队列。venus_hfi_work 在 pending/running 时不换队列
+（不可重入只在同一 workqueue 内成立）。只读自检计数在
+/sys/module/msm_vidc/parameters/venus_work_*，venus_work_overlap 必须为 0。
+台架（100 号票）：encode p99 8.41 -> 3.69 ms，中断->工作开始 p99 4.30 -> 0.019 ms。
+
+--- a/drivers/media/platform/msm/vidc/venus_hfi.h
++++ b/drivers/media/platform/msm/vidc/venus_hfi.h
+@@ -244,6 +244,7 @@
+ 	struct smem_client *hal_client;
+ 	struct hal_data *hal_data;
+ 	struct workqueue_struct *vidc_workq;
++	struct workqueue_struct *vidc_pcpu_workq;
+ 	struct workqueue_struct *venus_pm_workq;
+ 	int spur_count;
+ 	int reg_count;
+--- a/drivers/media/platform/msm/vidc/venus_hfi.c
++++ b/drivers/media/platform/msm/vidc/venus_hfi.c
+@@ -22,6 +22,7 @@
+ #include <linux/io.h>
+ #include <linux/iommu.h>
+ #include <linux/iopoll.h>
++#include <linux/moduleparam.h>
+ #include <linux/of.h>
+ #include <linux/pm_qos.h>
+ #include <linux/regulator/consumer.h>
+@@ -81,6 +82,33 @@
+ 
+ const int max_packets = 1000;
+ 
++/*
++ * venus_work_cpu >= 0 runs the interrupt bottom half (venus_hfi_work) on
++ * that CPU through a per-cpu WQ_HIGHPRI queue instead of the ordered unbound
++ * vidc_workq, whose kworker cannot be moved off CPU0-5 from userspace
++ * (ordered queues ignore workqueue/cpumask; isolcpus blocks wakeup
++ * migration).  -1 (default) keeps the original behaviour.  Writable at
++ * runtime: /sys/module/msm_vidc/parameters/venus_work_cpu.
++ * Read-only self-check counters next to it; venus_work_overlap must stay 0.
++ */
++static int venus_work_cpu = -1;
++module_param(venus_work_cpu, int, 0644);
++static unsigned int venus_work_queued_pcpu;
++module_param(venus_work_queued_pcpu, uint, 0444);
++static unsigned int venus_work_cpu_unavailable;
++module_param(venus_work_cpu_unavailable, uint, 0444);
++static unsigned int venus_work_switch_deferred;
++module_param(venus_work_switch_deferred, uint, 0444);
++static unsigned int venus_work_on_target;
++module_param(venus_work_on_target, uint, 0444);
++static unsigned int venus_work_off_target;
++module_param(venus_work_off_target, uint, 0444);
++static unsigned int venus_work_overlap;
++module_param(venus_work_overlap, uint, 0444);
++/* CPU the last venus_hfi_work was queued for; -1 = vidc_workq */
++static int venus_work_queued_cpu = -1;
++static atomic_t venus_work_running = ATOMIC_INIT(0);
++
+ static void venus_hfi_pm_handler(struct work_struct *work);
+ static DECLARE_DELAYED_WORK(venus_hfi_pm_work, venus_hfi_pm_handler);
+ static inline int __resume(struct venus_hfi_device *device);
+@@ -3179,6 +3207,18 @@
+ 		&hal_ctxt.dev_head, struct venus_hfi_device, list);
+ 	int num_responses = 0, i = 0;
+ 	u32 intr_status;
++	int queued_cpu = READ_ONCE(venus_work_queued_cpu);
++
++	if (atomic_inc_return(&venus_work_running) > 1) {
++		venus_work_overlap++;
++		WARN_ONCE(1, "venus_hfi_work running concurrently\n");
++	}
++	if (queued_cpu >= 0) {
++		if (raw_smp_processor_id() == queued_cpu)
++			venus_work_on_target++;
++		else
++			venus_work_off_target++;
++	}
+ 
+ 	mutex_lock(&device->lock);
+ 
+@@ -3227,6 +3267,8 @@
+ 		device->callback(r->response_type, &r->response);
+ 	}
+ 
++	atomic_dec(&venus_work_running);
++
+ 	/* We need re-enable the irq which was disabled in ISR handler */
+ 	if (!(intr_status & VIDC_WRAPPER_INTR_STATUS_A2HWD_BMSK))
+ 		enable_irq(device->hal_data->irq);
+@@ -3243,10 +3285,33 @@
+ static irqreturn_t venus_hfi_isr(int irq, void *dev)
+ {
+ 	struct venus_hfi_device *device = dev;
++	int cpu = READ_ONCE(venus_work_cpu);
+ 
+ 	dprintk(VIDC_INFO, "Received an interrupt %d\n", irq);
+ 	disable_irq_nosync(irq);
+-	queue_work(device->vidc_workq, &venus_hfi_work);
++
++	if (cpu >= 0 && !(cpu < nr_cpu_ids && cpu_online(cpu) &&
++			device->vidc_pcpu_workq)) {
++		venus_work_cpu_unavailable++;
++		cpu = -1;
++	}
++	/*
++	 * Workqueue non-reentrancy only holds within one workqueue, and the
++	 * handler walks device->response_pkt outside device->lock, so change
++	 * queue/CPU only while venus_hfi_work is neither pending nor running.
++	 */
++	if (cpu != venus_work_queued_cpu && work_busy(&venus_hfi_work)) {
++		venus_work_switch_deferred++;
++		cpu = venus_work_queued_cpu;
++	}
++	venus_work_queued_cpu = cpu;
++
++	if (cpu >= 0) {
++		venus_work_queued_pcpu++;
++		queue_work_on(cpu, device->vidc_pcpu_workq, &venus_hfi_work);
++	} else {
++		queue_work(device->vidc_workq, &venus_hfi_work);
++	}
+ 	return IRQ_HANDLED;
+ }
+ 
+@@ -4510,6 +4575,13 @@
+ 		goto err_cleanup;
+ 	}
+ 
++	hdevice->vidc_pcpu_workq = alloc_workqueue(
++		"msm_vidc_workerq_venus_pcpu", WQ_HIGHPRI | WQ_MEM_RECLAIM, 1);
++	if (!hdevice->vidc_pcpu_workq) {
++		dprintk(VIDC_ERR, ": create vidc pcpu workq failed\n");
++		goto err_cleanup;
++	}
++
+ 	hdevice->venus_pm_workq = create_singlethread_workqueue(
+ 			"pm_workerq_venus");
+ 	if (!hdevice->venus_pm_workq) {
+@@ -4531,6 +4603,8 @@
+ err_cleanup:
+ 	if (hdevice->vidc_workq)
+ 		destroy_workqueue(hdevice->vidc_workq);
++	if (hdevice->vidc_pcpu_workq)
++		destroy_workqueue(hdevice->vidc_pcpu_workq);
+ 	kfree(hdevice->response_pkt);
+ 	kfree(hdevice->raw_packet);
+ 	kfree(hdevice);
+@@ -4569,6 +4643,7 @@
+ 			list_del(&close->list);
+ 			mutex_destroy(&close->lock);
+ 			destroy_workqueue(close->vidc_workq);
++			destroy_workqueue(close->vidc_pcpu_workq);
+ 			destroy_workqueue(close->venus_pm_workq);
+ 			free_irq(dev->hal_data->irq, close);
+ 			iounmap(dev->hal_data->register_base);

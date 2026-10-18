@@ -25,7 +25,7 @@ expect_hash() {
 }
 
 version="$(tr -d '\n' < "$DIR/VERSION")"
-[[ "$version" == "19.6.28" || "$version" == 19.6.28-* ]]
+[[ "$version" == "19.6.29" || "$version" == 19.6.29-* ]]
 expect_hash userspace/usr/comma/setup a50dc0776e497e1060cbe670260d5bd4215f4b9c29a374b7f2b20982c72f633e
 [[ ! -e "$DIR/userspace/usr/comma/installer" ]]
 expect_hash userspace/files/amdgpu/gc_12_0_0_imu.bin.zst 1b095036d45d4280a72976ffdc5fa015fb33d528c87da688dd290bbb9716084f
@@ -80,7 +80,14 @@ if command -v uv >/dev/null 2>&1; then
   (cd "$DIR/userspace/uv" && uv lock --check)
 fi
 
+for path in \
+  kernel-patches/0001-msm_vidc-venus-work-cpu.patch \
+  kernel-patches/0002-tici_defconfig-no-panic-on-rt-throttling.patch; do
+  [[ -f "$DIR/$path" ]]
+done
+grep -Fq 'msm_vidc.venus_work_cpu=6' "$DIR/build_kernel.sh"
+
 kernel_ref="$(git -C "$DIR/agnos-kernel-sdm845" rev-parse HEAD 2>/dev/null || true)"
 [[ "$kernel_ref" == "4ee6b71b8ab9a461248985470726f5917943bc91" ]]
 
-echo "ToyoPilot AGNOS inputs validated (19.6.28, C3/Bluetooth, ToyoPilot setup, WebRTC ICE fix)."
+echo "ToyoPilot AGNOS inputs validated (19.6.29, C3/Bluetooth, ToyoPilot setup, WebRTC ICE fix, venus CPU6, boot Wi-Fi)."

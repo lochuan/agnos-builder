@@ -1,0 +1,15 @@
+tici_defconfig: 关 CONFIG_PANIC_ON_RT_THROTTLING
+
+RT 节流触发时退化为上游默认的节流 + 日志，不再 BUG() 重启（AGNOS 普查 §1.11）。
+
+--- a/arch/arm64/configs/tici_defconfig
++++ b/arch/arm64/configs/tici_defconfig
+@@ -5238,7 +5238,7 @@
+ CONFIG_SCHED_DEBUG=n
+ CONFIG_SCHED_INFO=n
+ CONFIG_PANIC_ON_SCHED_BUG=y
+-CONFIG_PANIC_ON_RT_THROTTLING=y
++# CONFIG_PANIC_ON_RT_THROTTLING is not set
+ CONFIG_SCHEDSTATS=n
+ CONFIG_SCHED_STACK_END_CHECK=n
+ # CONFIG_DEBUG_TIMEKEEPING is not set

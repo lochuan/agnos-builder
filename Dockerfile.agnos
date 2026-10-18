@@ -168,6 +168,7 @@ COPY ./userspace/files/fstab /etc
 COPY ./userspace/files/profile /etc/profile
 COPY ./userspace/files/comma-polkit.rules /etc/polkit-1/rules.d/
 COPY ./userspace/files/*.rules /etc/udev/rules.d/
+RUN rm -f /etc/udev/rules.d/comma-polkit.rules
 COPY ./userspace/files/ssh*_config /etc/ssh/
 COPY ./userspace/files/logrotate.conf /etc/
 COPY ./userspace/files/rsyslog /etc/logrotate.d/

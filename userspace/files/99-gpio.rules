@@ -1,2 +1,4 @@
-SUBSYSTEM=="gpio*", PROGRAM="/bin/sh -c 'find -L /sys/class/gpio/ -maxdepth 2 -exec chown root:gpio {} \; -exec chmod 770 {} \; || true'"
+# 101 号票：原规则对每个 gpio 事件跑 find -L /sys/class/gpio -maxdepth 2 -exec chown/chmod \;（约 650 次 fork/事件，
+# 每次开机 45 个 gpio 事件 ≈ 3 万次 fork，持续到开机 60 s 后），把 CPU 打满。改为只处理本事件的设备目录。
+SUBSYSTEM=="gpio", ACTION=="add", RUN+="/bin/sh -c 'find /sys%p -maxdepth 1 ! -type l -exec chown root:gpio {} + -exec chmod 770 {} +; chown root:gpio /sys/class/gpio/export /sys/class/gpio/unexport; chmod 770 /sys/class/gpio/export /sys/class/gpio/unexport'"
 SUBSYSTEM=="gpio", KERNEL=="gpiochip[0]", GROUP="gpio", MODE="660"

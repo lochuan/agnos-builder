@@ -15,7 +15,9 @@ SUBSYSTEM=="tty",ATTRS{idVendor}=="2c7c",ATTRS{idProduct}=="6007",ENV{ID_USB_INT
 SUBSYSTEM=="tty",ATTRS{idVendor}=="2c7c",ATTRS{idProduct}=="6007",ENV{ID_USB_INTERFACE_NUM}=="01",ENV{ID_MM_DEVICE_IGNORE}="1"
 SUBSYSTEM=="tty",ATTRS{idVendor}=="2c7c",ATTRS{idProduct}=="6007",ENV{ID_USB_INTERFACE_NUM}=="02",SYMLINK+="modem_at0",ENV{ID_MM_PORT_IGNORE}="1"
 SUBSYSTEM=="tty",ATTRS{idVendor}=="2c7c",ATTRS{idProduct}=="6007",ENV{ID_USB_INTERFACE_NUM}=="03",SYMLINK+="modem_at1",ENV{ID_MM_PORT_TYPE_AT_PRIMARY}="1"
-ACTION=="add",SUBSYSTEM=="usb",ATTR{idVendor}=="2c7c",ATTR{idProduct}=="6007",RUN+="/bin/sh -c 'echo -n $kernel:1.4 > /sys/bus/usb/drivers/cdc_ether/unbind'"
+# 101 号票：接口 4 是 CDC-ECM（usb1）。本项目不用 ModemManager/ECM（openpilot modem.py 走 ttyUSB PPP），
+# 原 cdc_ether unbind 在开机时阻塞约 22 s 并拖住 NetworkManager，改为让 NM / MM 忽略该网口。
+SUBSYSTEM=="net",ACTION=="add",ATTRS{idVendor}=="2c7c",ATTRS{idProduct}=="6007",ENV{NM_UNMANAGED}="1",ENV{ID_MM_PORT_IGNORE}="1"
 
 # C16
 KERNEL=="ttyACM1",ENV{ID_MM_DEVICE_IGNORE}="1"
